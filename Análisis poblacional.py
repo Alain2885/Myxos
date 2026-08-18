@@ -336,7 +336,7 @@ def procesar_carpeta(carpeta, longitud_real_um, subcarpeta_salida="procesadas"):
 if __name__ == "__main__":
     carpeta = r"C:\Users\alain\OneDrive\Desktop\Myxomycetes\Lycogala\Muestra2\Escala 500" #Carpeta principal donde están las imágenes
     longitud_real_um = 50.0 #Longitud que aparece en la barra de escala en la imagen  SEM (en µm)
-    datos, resumen, diam_por_img = procesar_carpeta(carpeta, longitud_real_um, subcarpeta_salida="procesadas")
+    datos, resumen, diam_por_img = procesar_carpeta(carpeta, longitud_real_um, subcarpeta_salida="Resultados")
 
     print("\n=== RESUMEN POR IMAGEN ===")
     for item in resumen:
