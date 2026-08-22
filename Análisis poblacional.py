@@ -8,6 +8,7 @@ from scipy import stats #Pruebas estadísticas
 from scikit_posthocs import posthoc_dunn
 import pandas as pd #Manejo de datos tabulares
 
+
 # ------------------ Funciones de procesamiento de imágenes ------------------
 
 def detectar_barra_escala(img_gray, img_color, longitud_real_um):
@@ -158,6 +159,38 @@ def analizar_y_graficar(datos_por_imagen, ruta_salida):
         print("No hay datos de diámetros.")
         return
 
+    # ================= Verificación de normalidad (Shapiro-Wilk) =================
+
+    print("\n=== Verificación de normalidad (Shapiro-Wilk) ===")
+    normalidad_resultados = []
+    
+    for name, group in df.groupby('Imagen'):
+        datos = group['Diametro_um'].values
+        n = len(datos)
+        if n >= 3:
+            stat, p = stats.shapiro(datos)
+            normal = "Sí (usar ANOVA)" if p >= 0.05 else "No (usar Kruskal-Wallis)"
+            print(f"{name}: W={stat:.4f}, p={p:.6f} -> {normal}")
+        else:
+            stat, p = None, None
+            normal = "Muestras insuficientes (n<3) para Shapiro-Wilk"
+            print(f"{name}: n={n} -> {normal}")
+        
+        normalidad_resultados.append({
+            'Archivo': name,
+            'n_muestras': n,
+            'Shapiro_W_stat': stat,
+            'Shapiro_p_valor': p,
+            'Normalidad': normal
+        })
+    
+    # Guardar la verificación de normalidad en CSV
+    df_normalidad = pd.DataFrame(normalidad_resultados)
+    ruta_normalidad_csv = os.path.join(ruta_salida, "verificacion_normalidad_shapiro.csv")
+    df_normalidad.to_csv(ruta_normalidad_csv, index=False, encoding='utf-8')
+    print(f"\nResultados de normalidad guardados en: {ruta_normalidad_csv}")
+
+
     # 1. Estadísticas descriptivas por imagen
     stats_df = df.groupby('Imagen')['Diametro_um'].agg(['count', 'mean', 'median', 'std', 'min', 'max']).reset_index()
     stats_df.columns = ['archivo', 'num_esporas', 'promedio_um', 'mediana_um', 'desv_um', 'min_um', 'max_um']
@@ -190,7 +223,7 @@ def analizar_y_graficar(datos_por_imagen, ruta_salida):
     # Boxplot
     plt.figure(figsize=(10, 6))
     sns.boxplot(x='Imagen', y='Diametro_um', data=df, palette="Set3")
-    plt.title("Distribución del diámetro equivalente circular por imagen")
+    plt.title("Distribución del diámetro equivalente circular (DEC) en cada replica")
     plt.ylabel("Diámetro (µm)")
     plt.xticks(rotation=45)
     plt.tight_layout()
@@ -204,7 +237,7 @@ def analizar_y_graficar(datos_por_imagen, ruta_salida):
     for img in datos_por_imagen.keys():
         diametros = datos_por_imagen[img]
         sns.histplot(diametros, kde=True, label=img, alpha=0.5, bins=15)
-    plt.title("Histograma de diámetros por imagen")
+    plt.title("Histograma de diámetro equivalente circular (DEC) por replica")
     plt.xlabel("Diámetro (µm)")
     plt.ylabel("Frecuencia")
     plt.legend()
@@ -214,10 +247,10 @@ def analizar_y_graficar(datos_por_imagen, ruta_salida):
     plt.close()
     print(f"Histogramas guardados en {hist_path}")
 
-    # Opcional: Violin plot
+    # Opcional: gráfico de Violin 
     plt.figure(figsize=(10, 6))
     sns.violinplot(x='Imagen', y='Diametro_um', data=df, palette="Set3")
-    plt.title("Violin plot de diámetros por imagen")
+    plt.title("Distribución del diámetro equivalente circular (DEC) en cada replica")
     plt.ylabel("Diámetro (µm)")
     plt.xticks(rotation=45)
     plt.tight_layout()
@@ -336,7 +369,7 @@ def procesar_carpeta(carpeta, longitud_real_um, subcarpeta_salida="procesadas"):
 if __name__ == "__main__":
     carpeta = r"C:\Users\alain\OneDrive\Desktop\Myxomycetes\Lycogala\Muestra2\Escala 500" #Carpeta principal donde están las imágenes
     longitud_real_um = 50.0 #Longitud que aparece en la barra de escala en la imagen  SEM (en µm)
-    datos, resumen, diam_por_img = procesar_carpeta(carpeta, longitud_real_um, subcarpeta_salida="Resultados")
+    datos, resumen, diam_por_img = procesar_carpeta(carpeta, longitud_real_um, subcarpeta_salida="Resultados") #Carpeta donde se guardarán los resultados
 
     print("\n=== RESUMEN POR IMAGEN ===")
     for item in resumen:
